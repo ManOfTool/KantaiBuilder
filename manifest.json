@@ -1,0 +1,8 @@
+{
+    "name": "Kantai Builder",
+    "version": "1.0",
+    "description": "Click the button to get your current Kantai!",
+    "permissions": ["tabs", "storage"],
+    "devtools_page": "devtools.html",
+    "manifest_version": 2
+}
