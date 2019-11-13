@@ -4,7 +4,8 @@ Get your kantai in chrome devtool
 在開發人員工具中顯示你的艦隊編成，再也不用手動輸入！
 
 ## 安裝
-### Chrome browser
+以Chrome browser為例
+### 載入專案資料夾
 * 下載專案壓縮檔並解壓縮
 * 進入擴充功能分頁，開啟「開發人員模式」
 * 點擊「載入未封裝項目」，選擇KantaiBuilder資料夾
