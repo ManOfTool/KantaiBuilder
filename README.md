@@ -2,6 +2,8 @@
 Get your kantai in chrome devtool
 
 在開發人員工具中顯示你的艦隊編成，再也不用手動輸入！
+[](https://github.com/ManOfTool/KantaiBuilder/blob/master/s1.png)
+
 
 ## 安裝
 以Chrome browser為例
