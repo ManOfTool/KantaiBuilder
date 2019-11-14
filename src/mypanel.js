@@ -23,7 +23,7 @@ let own_ships = [];
 let own_decks = [];
 let own_slots = [];
 
-chrome.devtools.network.onRequestFinished.addListener((har) => {
+chrome.devtools.network.onRequestFinished.addListener(async (har) => {
     const url = har.request.url;
     if (portRegex.test(url)) {
 
@@ -64,7 +64,7 @@ chrome.devtools.network.onRequestFinished.addListener((har) => {
                     own_slots = own_slots.concat(dataJSON.api_get_items);
                 }
                 chrome.storage.local.set({"own_slots": own_slots}, () => {
-                    console.log("OK");
+                    console.log("own_slots updated");
                 });
             });
         });
@@ -74,76 +74,95 @@ chrome.devtools.network.onRequestFinished.addListener((har) => {
 btnBuild.addEventListener('click', () => {
     dataElement.innerHTML = "";
 
+    chrome.tabs.query({active: true}, (tabs) => {
+        if (tabs[0].url == kancolleUrl)
+            buildKantai();
+        else
+            dataElement.innerHTML = "<h2>Not in kancolle tab.<h2>";
+    });
+
+});
+
+function buildKantai() {
     chrome.storage.local.get(["own_decks", "own_ships", "own_slots"], function(data) {
         own_decks = data.own_decks;
         own_ships = data.own_ships;
         own_slots = data.own_slots;
-
-        if (own_slots.length < 10)
-            document.getElementById('get-item').innerHTML = "No items data";
 
         let decks = own_decks.map(deck => new Deck(deck));
 
         decks.map(deck => {
             let doc_deck = document.createElement('div');
             doc_deck.classList.add('deck');
-            doc_deck.innerHTML = `<h3 class="deck-name">${deck.api_name}</h3>`;
 
-            deck.api_ship.map(ship => {
-                if (ship != -1) {
-                    let doc_ship = document.createElement('div');
-                    doc_ship.classList.add('ship');
-                    doc_ship.innerHTML = `<div><b>${ship.api_name} - ${ship.api_lv}</b></div>`;
+            let doc_deck_name = document.createElement('div');
+            doc_deck_name.classList.add('deck-name');
+            doc_deck_name.innerText = deck.api_name;
+            doc_deck_name.addEventListener('click', showHide);
+            doc_deck.append(doc_deck_name);
 
-                    let doc_slots = document.createElement('div');
-                    doc_slots.classList.add('ship-slots');
-                    ship.api_slot.map(slot => {
-                        let doc_slot = document.createElement('input');
-                        doc_slot.type = 'text';
-                        if (slot != -1) {
-                            doc_slot.disabled = true;
-                            doc_slot.value = `${slot.api_name} - ☆${slot.api_level}`;
-                            if (slot.api_alv > 0) doc_slot.value += ` ${alvList[slot.api_alv]}`;
-                        } else {
-                            // doc_slot.disabled = true;
-                            doc_slot.classList.add('disabled-input');
-                        }
-                        doc_slots.append(doc_slot);
-                    });
-                    doc_ship.append(doc_slots);
-                    doc_deck.append(doc_ship);
-                }
+            let doc_ships_list = document.createElement('div');
+            doc_ships_list.classList.add('ships-list');
+
+            deck.api_ship.filter(s => s != -1).map(ship => {
+                let doc_ship = document.createElement('div');
+                doc_ship.classList.add('ship');
+                doc_ship.innerHTML = `<div><b>${ship.api_name} - ${ship.api_lv}</b></div>`;
+
+                let doc_slots = document.createElement('div');
+                doc_slots.classList.add('ship-slots');
+
+                ship.api_slot.map(slot => {
+                    let doc_slot = document.createElement('input');
+                    doc_slot.type = 'text';
+                    doc_slot.value = (typeof slot == "object") ?
+                       `${slot.api_name} - ☆${slot.api_level} ${alvList[slot.api_alv]}` : '';
+
+                    doc_slot.disabled = true;
+                    doc_slots.append(doc_slot);
+                });
+
+                doc_ship.append(doc_slots);
+                doc_ships_list.append(doc_ship);
             });
+            doc_deck.append(doc_ships_list);
             dataElement.append(doc_deck);
         });
     });
 
-});
+}
 
 function extractData(data, target=null) {
     let extract = JSON.stringify(data, target);
     return JSON.parse(extract);
 }
 
+function showHide() {
+    this.parentElement.querySelector('.ships-list').hidden ^= true;
+}
+
 function Deck(deck) {
     this.api_name = deck.api_name;
-    this.api_ship = deck.api_ship.map(ship => {
-        return ship > 0 ?
-            new Ship(own_ships.find(i => i.api_id == ship)) : ship;
+    this.api_ship = deck.api_ship.filter(ship => ship > 0).map(ship => {
+        return new Ship(own_ships.find(i => i.api_id == ship));
     });
 }
 
 function Ship(ship) {
     this.api_name = all_ships.find(i => i.api_id == ship.api_ship_id).api_name;
+    
     this.api_lv = ship.api_lv;
     this.api_slot = ship.api_slot.concat(ship.api_slot_ex).map(slot => {
-        return slot > 0 ?
-            new Slot(own_slots.find(i => i.api_id == slot)) : -1;
+        let s = own_slots.find(i => i.api_id == slot);
+        if (s)
+            return new Slot(s);
+        else
+            return slot;
     });
 }
 
 function Slot(slot) {
-    this.api_level = slot.api_level;
-    this.api_alv = slot.api_alv ? slot.api_alv : 0;
     this.api_name = all_items.find(i => i.api_id == slot.api_slotitem_id).api_name;
+    this.api_level = slot.api_level || 0;
+    this.api_alv = slot.api_alv || 0;
 }

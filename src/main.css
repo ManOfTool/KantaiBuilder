@@ -18,7 +18,8 @@ b {
 }
 
 .deck-name {
-    background-color: #0acc3e;
+    font: 150% caption;
+    background-color: #b4fc5b;
 }
 
 .deck {
