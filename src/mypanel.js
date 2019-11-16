@@ -1,3 +1,5 @@
+'use strict'
+
 const portRegex = /https*:\/\/(\d+\.*)+\/kcsapi\/api_port\/port/;
 const equiptRegex = /https*:\/\/(\d+\.*)+\/kcsapi\/api_get_member\/(slot_item|require_info)/;
 const factoryRegex = /https*:\/\/(\d+\.*)+\/kcsapi\/api_req_kousyou\/(createitem|getship|remodel_slot)/;
@@ -85,11 +87,15 @@ btnBuild.addEventListener('click', () => {
 
 function buildKantai() {
     chrome.storage.local.get(["own_decks", "own_ships", "own_slots"], function(data) {
-        own_decks = data.own_decks;
-        own_ships = data.own_ships;
-        own_slots = data.own_slots;
+        own_decks = data.own_decks || [];
+        own_ships = data.own_ships || [];
+        own_slots = data.own_slots || [];
+
+        if (own_slots.length == 0)
+            document.getElementById('get-item').innerHTML = "No items data!";
 
         let decks = own_decks.map(deck => new Deck(deck));
+        console.log('decks', decks);
 
         decks.map(deck => {
             let doc_deck = document.createElement('div');
@@ -153,9 +159,9 @@ function Ship(ship) {
     
     this.api_lv = ship.api_lv;
     this.api_slot = ship.api_slot.concat(ship.api_slot_ex).map(slot => {
-        let s = own_slots.find(i => i.api_id == slot);
-        if (s)
-            return new Slot(s);
+        let s = own_slots.filter(i => i.api_id == slot);
+        if (s.length > 0)
+            return new Slot(s[0]);
         else
             return slot;
     });
